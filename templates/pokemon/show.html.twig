@@ -1,34 +1,212 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-	{{ pokemon_name }}
-	info
+	{{ pokemon_data.name|title }} - Détails Pokédex
 {% endblock %}
 
 {% block body %}
-	<div>
-		<h1>Pokemon Details:
-			{{ pokemon_name }}</h1>
-		{% if pokemon_data %}
-			<ul class="list-group">
-				<li class="list-group-item">
-					<strong>ID:</strong>
-					{{ pokemon_data.id }}</li>
-				<li class="list-group-item">
-					<strong>Name:</strong>
-					{{ pokemon_data.name }}</li>
-				<li class="list-group-item">
-					<strong>Height:</strong>
-					{{ pokemon_data.height }}</li>
-				<li class="list-group-item">
-					<strong>Weight:</strong>
-					{{ pokemon_data.weight }}</li>
-				<li class="list-group-item">
-					<strong>Base Experience:</strong>
-					{{ pokemon_data.base_experience }}</li>
-			</ul>
-		{% else %}
-			<p class="text-danger">Pokemon not found.</p>
-		{% endif %}
-	</div>
+<div class="container-fluid py-4">
+	{% if pokemon_data %}
+		<!-- En-tête avec nom et numéro -->
+		<div class="row mb-4">
+			<div class="col-12 text-center">
+				<h1 class="display-4 fw-bold text-primary mb-2">
+					#{{ pokemon_data.id|number_format(0, '', '') }} {{ pokemon_data.name|title }}
+				</h1>
+				<div class="mb-3">
+					{% for type in pokemon_data.types %}
+						<span class="badge bg-{{ type.type.name == 'electric' ? 'warning' : 
+							type.type.name == 'fire' ? 'danger' : 
+							type.type.name == 'water' ? 'primary' : 
+							type.type.name == 'grass' ? 'success' : 
+							type.type.name == 'psychic' ? 'info' : 
+							type.type.name == 'ice' ? 'light text-dark' : 
+							type.type.name == 'dragon' ? 'dark' : 
+							type.type.name == 'dark' ? 'secondary' : 
+							type.type.name == 'fairy' ? 'light text-dark' : 
+							type.type.name == 'fighting' ? 'danger' : 
+							type.type.name == 'poison' ? 'dark' : 
+							type.type.name == 'ground' ? 'warning' : 
+							type.type.name == 'flying' ? 'info' : 
+							type.type.name == 'bug' ? 'success' : 
+							type.type.name == 'rock' ? 'secondary' : 
+							type.type.name == 'ghost' ? 'dark' : 
+							type.type.name == 'steel' ? 'secondary' : 
+							type.type.name == 'normal' ? 'light text-dark' : 'secondary' }} fs-6 me-2 px-3 py-2">
+							{{ type.type.name|title }}
+						</span>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<!-- Colonne gauche - Image et infos de base -->
+			<div class="col-lg-4 col-md-6 mb-4">
+				<div class="card h-100 shadow-sm">
+					<div class="card-body text-center">
+						<!-- Image principale -->
+						{% if pokemon_data.sprites.other['official-artwork'].front_default %}
+							<img src="{{ pokemon_data.sprites.other['official-artwork'].front_default }}" 
+								 alt="{{ pokemon_data.name|title }}" 
+								 class="img-fluid mb-3" 
+								 style="max-height: 300px;">
+						{% elseif pokemon_data.sprites.front_default %}
+							<img src="{{ pokemon_data.sprites.front_default }}" 
+								 alt="{{ pokemon_data.name|title }}" 
+								 class="img-fluid mb-3" 
+								 style="max-height: 200px;">
+						{% endif %}
+
+						<!-- Autres sprites -->
+						<div class="row g-2 mt-3">
+							{% if pokemon_data.sprites.front_default %}
+								<div class="col-3">
+									<img src="{{ pokemon_data.sprites.front_default }}" 
+										 alt="Normal" 
+										 class="img-fluid border rounded" 
+										 title="Normal">
+								</div>
+							{% endif %}
+							{% if pokemon_data.sprites.front_shiny %}
+								<div class="col-3">
+									<img src="{{ pokemon_data.sprites.front_shiny }}" 
+										 alt="Shiny" 
+										 class="img-fluid border rounded" 
+										 title="Shiny">
+								</div>
+							{% endif %}
+							{% if pokemon_data.sprites.back_default %}
+								<div class="col-3">
+									<img src="{{ pokemon_data.sprites.back_default }}" 
+										 alt="Dos" 
+										 class="img-fluid border rounded" 
+										 title="Dos">
+								</div>
+							{% endif %}
+							{% if pokemon_data.sprites.back_shiny %}
+								<div class="col-3">
+									<img src="{{ pokemon_data.sprites.back_shiny }}" 
+										 alt="Dos Shiny" 
+										 class="img-fluid border rounded" 
+										 title="Dos Shiny">
+								</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Colonne centrale - Informations détaillées -->
+			<div class="col-lg-4 col-md-6 mb-4">
+				<div class="card h-100 shadow-sm">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations</h5>
+					</div>
+					<div class="card-body">
+						<div class="row g-3">
+							<div class="col-6">
+								<div class="border rounded p-3 text-center">
+									<div class="fw-bold text-muted small">TAILLE</div>
+									<div class="h4 mb-0">{{ (pokemon_data.height / 10)|number_format(1) }}m</div>
+								</div>
+							</div>
+							<div class="col-6">
+								<div class="border rounded p-3 text-center">
+									<div class="fw-bold text-muted small">POIDS</div>
+									<div class="h4 mb-0">{{ (pokemon_data.weight / 10)|number_format(1) }}kg</div>
+								</div>
+							</div>
+							<div class="col-12">
+								<div class="border rounded p-3 text-center">
+									<div class="fw-bold text-muted small">EXPÉRIENCE DE BASE</div>
+									<div class="h4 mb-0">{{ pokemon_data.base_experience }}</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Capacités -->
+						<div class="mt-4">
+							<h6 class="fw-bold mb-3">Capacités</h6>
+							{% for ability in pokemon_data.abilities %}
+								<div class="d-flex justify-content-between align-items-center mb-2">
+									<span class="badge {{ ability.is_hidden ? 'bg-warning text-dark' : 'bg-info' }} px-3 py-2">
+										{{ ability.ability.name|replace({'-': ' '})|title }}
+									</span>
+									{% if ability.is_hidden %}
+										<small class="text-muted">Cachée</small>
+									{% endif %}
+								</div>
+							{% endfor %}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Colonne droite - Statistiques -->
+			<div class="col-lg-4 col-md-12 mb-4">
+				<div class="card h-100 shadow-sm">
+					<div class="card-header bg-success text-white">
+						<h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques</h5>
+					</div>
+					<div class="card-body">
+						{% set total_stats = 0 %}
+						{% for stat in pokemon_data.stats %}
+							{% set total_stats = total_stats + stat.base_stat %}
+							{% set stat_percentage = (stat.base_stat / 200 * 100)|round %}
+							<div class="mb-3">
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<span class="fw-semibold text-capitalize">
+										{{ stat.stat.name|replace({'-': ' '})|title }}
+									</span>
+									<span class="badge bg-secondary">{{ stat.base_stat }}</span>
+								</div>
+								<div class="progress" style="height: 8px;">
+									<div class="progress-bar 
+										{% if stat.base_stat >= 100 %}bg-success
+										{% elseif stat.base_stat >= 70 %}bg-warning
+										{% else %}bg-danger
+										{% endif %}" 
+										 role="progressbar" 
+										 style="width: {{ stat_percentage }}%"
+										 aria-valuenow="{{ stat.base_stat }}" 
+										 aria-valuemin="0" 
+										 aria-valuemax="200">
+									</div>
+								</div>
+							</div>
+						{% endfor %}
+						
+						<!-- Total des stats -->
+						<div class="border-top pt-3 mt-3">
+							<div class="d-flex justify-content-between align-items-center">
+								<span class="fw-bold">Total</span>
+								<span class="badge bg-primary fs-6">{{ total_stats }}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Bouton retour -->
+		<div class="row mt-4">
+			<div class="col-12 text-center">
+				<a href="{{ path('pokemon.index') }}" class="btn btn-outline-primary btn-lg">
+					<i class="fas fa-arrow-left me-2"></i>Retour à la liste
+				</a>
+			</div>
+		</div>
+
+	{% else %}
+		<div class="alert alert-danger text-center" role="alert">
+			<h4 class="alert-heading">Pokémon introuvable!</h4>
+			<p>Le Pokémon "{{ pokemon_name }}" n'a pas pu être trouvé.</p>
+			<hr>
+			<a href="{{ path('pokemon.index') }}" class="btn btn-primary">
+				<i class="fas fa-arrow-left me-2"></i>Retour à la liste
+			</a>
+		</div>
+	{% endif %}
+</div>
 {% endblock %}
