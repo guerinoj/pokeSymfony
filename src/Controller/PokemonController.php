@@ -11,8 +11,7 @@ final class PokemonController extends AbstractController
 {
     public function __construct(
         private HttpClientInterface $httpClient
-    ) {
-    }
+    ) {}
     #[Route('/pokemon', name: 'pokemon.index')]
     public function index(): Response
     {
