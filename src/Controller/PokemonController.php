@@ -38,6 +38,41 @@ final class PokemonController extends AbstractController
         ]);
     }
 
+    #[Route('/pokemon/search', name: 'pokemon.search')]
+    public function search(Request $request): Response
+    {
+        $query = $request->query->get('q', '');
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = 20;
+        $results = [];
+        $totalResults = 0;
+
+        if ($query) {
+            $allResults = $this->pokemonService->searchByName($query);
+            $totalResults = count($allResults);
+
+            // Pagination des résultats
+            $offset = ($page - 1) * $limit;
+            $results = array_slice($allResults, $offset, $limit);
+        }
+
+        $totalPages = $totalResults > 0 ? ceil($totalResults / $limit) : 0;
+
+        return $this->render('pokemon/search.html.twig', [
+            'controller_name' => 'PokemonController',
+            'search_query' => $query,
+            'pokemon_list' => $results,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'total_pokemon' => $totalResults,
+            'limit' => $limit,
+            'has_previous' => $page > 1,
+            'has_next' => $page < $totalPages,
+            'previous_page' => $page - 1,
+            'next_page' => $page + 1,
+        ]);
+    }
+
     #[Route('/pokemon/{name}', name: 'pokemon.show')]
     public function show(string $name): Response
     {

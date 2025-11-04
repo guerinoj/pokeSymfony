@@ -1,151 +1,172 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Get them all!
+{% block title %}Pokédex - Liste complète des Pokémon
 {% endblock %}
 
 {% block body %}
-	<div>
-		<h1>Liste des Pokémon</h1>
-
-		<!-- Informations de pagination -->
-		<div class="d-flex justify-content-between align-items-center mb-3">
-			<p class="text-muted mb-0">
-				Affichage de
-				{{ ((current_page - 1) * limit) + 1 }}
-				à
-				{{ min(current_page * limit, total_pokemon) }}
-				sur
-				{{ total_pokemon }}
-				Pokémon
-			</p>
-			<span class="badge bg-primary">Page
-				{{ current_page }}
-				sur
-				{{ total_pages }}</span>
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<div>
+			<h1 class="mb-1">
+				<i class="fas fa-list text-primary"></i>
+				Pokédex
+			</h1>
+			<p class="text-muted mb-0">Liste complète des Pokémon</p>
 		</div>
+		<div>
+			<a href="{{ path('home.index') }}" class="btn btn-outline-secondary me-2">
+				<i class="fas fa-home"></i>
+				Accueil
+			</a>
+			<a href="{{ path('pokemon.search') }}" class="btn btn-primary">
+				<i class="fas fa-search"></i>
+				Rechercher
+			</a>
+		</div>
+	</div>
 
-		<!-- Tableau des Pokémon -->
-		<div class="table-responsive">
-			<table class="table table-striped table-hover">
-				<thead class="table-dark">
+	<!-- Informations de pagination -->
+	<div class="d-flex justify-content-between align-items-center mb-3">
+		<p class="text-muted mb-0">
+			<i class="fas fa-info-circle"></i>
+			Affichage de
+			{{ ((current_page - 1) * limit) + 1 }}
+			à
+			{{ min(current_page * limit, total_pokemon) }}
+			sur
+			{{ total_pokemon }}
+			Pokémon
+		</p>
+		<span class="badge bg-primary fs-6">Page {{ current_page }} sur {{ total_pages }}</span>
+	</div>
+
+	<!-- Tableau des Pokémon -->
+	<div class="table-responsive">
+		<table class="table table-striped table-hover">
+			<thead class="table-dark">
+				<tr>
+					<th scope="col">#</th>
+					<th scope="col">
+						<i class="fas fa-paw"></i>
+						Nom
+					</th>
+					<th scope="col">
+						<i class="fas fa-cogs"></i>
+						Actions
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for pokemon in pokemon_list %}
 					<tr>
-						<th scope="col">#</th>
-						<th scope="col">Nom</th>
-						<th scope="col">Actions</th>
+						<th scope="row">{{ ((current_page - 1) * limit) + loop.index }}</th>
+						<td>
+							<strong class="text-capitalize">{{ pokemon.name }}</strong>
+						</td>
+						<td>
+							<a href="{{ path('pokemon.show', { name: pokemon.name }) }}" class="btn btn-sm btn-outline-primary">
+								<i class="fas fa-eye"></i>
+								Voir détails
+							</a>
+						</td>
 					</tr>
-				</thead>
-				<tbody>
-					{% for pokemon in pokemon_list %}
-						<tr>
-							<th scope="row">{{ ((current_page - 1) * limit) + loop.index }}</th>
-							<td>
-								<strong>{{ pokemon.name|title }}</strong>
-							</td>
-							<td>
-								<a href="{{ path('pokemon.show', { name: pokemon.name }) }}" class="btn btn-sm btn-outline-primary">
-									<i class="bi bi-eye"></i>
-									Voir détails
-								</a>
-							</td>
-						</tr>
+				{% else %}
+					<tr>
+						<td colspan="3" class="text-center text-muted">Aucun Pokémon trouvé.</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<!-- Navigation de pagination -->
+	{% if total_pages > 1 %}
+		<nav aria-label="Navigation des pages Pokémon">
+			<ul class="pagination justify-content-center">
+				<!-- Bouton Précédent -->
+				<li class="page-item {{ not has_previous ? 'disabled' : '' }}">
+					{% if has_previous %}
+						<a class="page-link" href="{{ path('pokemon.index', { page: previous_page }) }}" aria-label="Page précédente">
+							<span aria-hidden="true">&laquo;</span>
+						</a>
 					{% else %}
-						<tr>
-							<td colspan="3" class="text-center text-muted">Aucun Pokémon trouvé.</td>
-						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
+						<span class="page-link" aria-label="Page précédente">
+							<span aria-hidden="true">&laquo;</span>
+						</span>
+					{% endif %}
+				</li>
+
+				<!-- Numéros de pages -->
+				{% set start_page = max(1, current_page - 2) %}
+				{% set end_page = min(total_pages, current_page + 2) %}
+
+				<!-- Première page si nécessaire -->
+				{% if start_page > 1 %}
+					<li class="page-item">
+						<a class="page-link" href="{{ path('pokemon.index', { page: 1 }) }}">1</a>
+					</li>
+					{% if start_page > 2 %}
+						<li class="page-item disabled">
+							<span class="page-link">...</span>
+						</li>
+					{% endif %}
+				{% endif %}
+
+				<!-- Pages autour de la page courante -->
+				{% for page in start_page..end_page %}
+					<li class="page-item {{ page == current_page ? 'active' : '' }}">
+						{% if page == current_page %}
+							<span class="page-link">{{ page }}</span>
+						{% else %}
+							<a class="page-link" href="{{ path('pokemon.index', { page: page }) }}">{{ page }}</a>
+						{% endif %}
+					</li>
+				{% endfor %}
+
+				<!-- Dernière page si nécessaire -->
+				{% if end_page < total_pages %}
+					{% if end_page < total_pages - 1 %}
+						<li class="page-item disabled">
+							<span class="page-link">...</span>
+						</li>
+					{% endif %}
+					<li class="page-item">
+						<a class="page-link" href="{{ path('pokemon.index', { page: total_pages }) }}">{{ total_pages }}</a>
+					</li>
+				{% endif %}
+
+				<!-- Bouton Suivant -->
+				<li class="page-item {{ not has_next ? 'disabled' : '' }}">
+					{% if has_next %}
+						<a class="page-link" href="{{ path('pokemon.index', { page: next_page }) }}" aria-label="Page suivante">
+							<span aria-hidden="true">&raquo;</span>
+						</a>
+					{% else %}
+						<span class="page-link" aria-label="Page suivante">
+							<span aria-hidden="true">&raquo;</span>
+						</span>
+					{% endif %}
+				</li>
+			</ul>
+		</nav>
+	{% endif %}
+
+	<!-- Navigation rapide -->
+	<div class="row mt-4">
+		<div class="col-md-6">
+			{% if has_previous %}
+				<a href="{{ path('pokemon.index', { page: previous_page }) }}" class="btn btn-outline-secondary">
+					<i class="fas fa-chevron-left"></i>
+					Page précédente
+				</a>
+			{% endif %}
 		</div>
-
-		<!-- Navigation de pagination -->
-		{% if total_pages > 1 %}
-			<nav aria-label="Navigation des pages Pokémon">
-				<ul
-					class="pagination justify-content-center">
-					<!-- Bouton Précédent -->
-					<li class="page-item {{ not has_previous ? 'disabled' : '' }}">
-						{% if has_previous %}
-							<a class="page-link" href="{{ path('pokemon.index', { page: previous_page }) }}" aria-label="Page précédente">
-								<span aria-hidden="true">&laquo;</span>
-							</a>
-						{% else %}
-							<span class="page-link" aria-label="Page précédente">
-								<span aria-hidden="true">&laquo;</span>
-							</span>
-						{% endif %}
-					</li>
-
-					<!-- Numéros de pages -->
-					{% set start_page = max(1, current_page - 2) %}
-					{% set end_page = min(total_pages, current_page + 2) %}
-
-					<!-- Première page si nécessaire -->
-					{% if start_page > 1 %}
-						<li class="page-item">
-							<a class="page-link" href="{{ path('pokemon.index', { page: 1 }) }}">1</a>
-						</li>
-						{% if start_page > 2 %}
-							<li class="page-item disabled">
-								<span class="page-link">...</span>
-							</li>
-						{% endif %}
-					{% endif %}
-
-					<!-- Pages autour de la page courante -->
-					{% for page in start_page..end_page %}
-						<li class="page-item {{ page == current_page ? 'active' : '' }}">
-							{% if page == current_page %}
-								<span class="page-link">{{ page }}</span>
-							{% else %}
-								<a class="page-link" href="{{ path('pokemon.index', { page: page }) }}">{{ page }}</a>
-							{% endif %}
-						</li>
-					{% endfor %}
-
-					<!-- Dernière page si nécessaire -->
-					{% if end_page < total_pages %}
-						{% if end_page < total_pages - 1 %}
-							<li class="page-item disabled">
-								<span class="page-link">...</span>
-							</li>
-						{% endif %}
-						<li class="page-item">
-							<a class="page-link" href="{{ path('pokemon.index', { page: total_pages }) }}">{{ total_pages }}</a>
-						</li>
-					{% endif %}
-
-					<!-- Bouton Suivant -->
-					<li class="page-item {{ not has_next ? 'disabled' : '' }}">
-						{% if has_next %}
-							<a class="page-link" href="{{ path('pokemon.index', { page: next_page }) }}" aria-label="Page suivante">
-								<span aria-hidden="true">&raquo;</span>
-							</a>
-						{% else %}
-							<span class="page-link" aria-label="Page suivante">
-								<span aria-hidden="true">&raquo;</span>
-							</span>
-						{% endif %}
-					</li>
-				</ul>
-			</nav>
-		{% endif %}
-
-		<!-- Navigation rapide -->
-		<div class="row mt-4">
-			<div class="col-md-6">
-				{% if has_previous %}
-					<a href="{{ path('pokemon.index', { page: previous_page }) }}" class="btn btn-outline-secondary">
-						&laquo; Page précédente
-					</a>
-				{% endif %}
-			</div>
-			<div class="col-md-6 text-end">
-				{% if has_next %}
-					<a href="{{ path('pokemon.index', { page: next_page }) }}" class="btn btn-outline-secondary">
-						Page suivante &raquo;
-					</a>
-				{% endif %}
-			</div>
+		<div class="col-md-6 text-end">
+			{% if has_next %}
+				<a href="{{ path('pokemon.index', { page: next_page }) }}" class="btn btn-outline-secondary">
+					Page suivante
+					<i class="fas fa-chevron-right"></i>
+				</a>
+			{% endif %}
 		</div>
 	</div>
 {% endblock %}

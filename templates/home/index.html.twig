@@ -1,10 +1,90 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello HomeController!
+{% block title %}Pokemon Center - Accueil
 {% endblock %}
 
 {% block body %}
-	<h1>Pokemon Center</h1>
-	<p>Welcome to the Pokemon Center! Here, trainers can heal their Pokemon and prepare for their next adventure.</p>
-	<a href="{{ path('pokemon.index') }}" class="btn btn-primary">View Pokemon List</a>
+	<div class="row">
+		<div class="col-12 text-center mb-5">
+			<h1 class="display-4 text-primary">
+				<i class="fas fa-heart text-danger"></i>
+				Pokemon Center
+			</h1>
+			<p class="lead text-muted">Bienvenue au Centre Pokémon ! Ici, les dresseurs peuvent soigner leurs Pokémon et se préparer pour leur prochaine aventure.</p>
+		</div>
+	</div>
+
+	<div class="row justify-content-center mb-5">
+		<div class="col-md-8 col-lg-6">
+			<div class="card shadow">
+				<div class="card-header bg-primary text-white text-center">
+					<h5 class="mb-0">
+						<i class="fas fa-search"></i>
+						Rechercher un Pokémon
+					</h5>
+				</div>
+				<div class="card-body">
+					<form method="GET" action="{{ path('pokemon.search') }}">
+						<div class="input-group input-group-lg">
+							<span class="input-group-text">
+								<i class="fas fa-search text-muted"></i>
+							</span>
+							<input 
+								type="text" 
+								class="form-control" 
+								name="q" 
+								placeholder="Nom du Pokémon (ex: pikachu, charizard...)" 
+								aria-label="Rechercher un Pokémon"
+								required
+							>
+							<button class="btn btn-primary" type="submit">
+								<i class="fas fa-search"></i>
+								Rechercher
+							</button>
+						</div>
+						<div class="form-text text-center mt-2">
+							<small>Tapez le nom d'un Pokémon pour le rechercher dans le Pokédex</small>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-md-6 mb-3">
+			<div class="card h-100 border-primary">
+				<div class="card-body text-center">
+					<i class="fas fa-list fa-3x text-primary mb-3"></i>
+					<h5 class="card-title">Explorer tous les Pokémon</h5>
+					<p class="card-text">Parcourez la liste complète des Pokémon avec pagination pour découvrir toutes les créatures.</p>
+					<a href="{{ path('pokemon.index') }}" class="btn btn-primary">
+						<i class="fas fa-eye"></i>
+						Voir la liste complète
+					</a>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6 mb-3">
+			<div class="card h-100 border-success">
+				<div class="card-body text-center">
+					<i class="fas fa-random fa-3x text-success mb-3"></i>
+					<h5 class="card-title">Pokémon aléatoire</h5>
+					<p class="card-text">Découvrez un Pokémon au hasard pour explorer de nouvelles créatures.</p>
+					<button class="btn btn-success" onclick="getRandomPokemon()">
+						<i class="fas fa-dice"></i>
+						Pokémon surprise
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		function getRandomPokemon() {
+			// Générer un ID aléatoire entre 1 et 1025 (nombre approximatif de Pokémon)
+			const randomId = Math.floor(Math.random() * 1025) + 1;
+			window.location.href = `{{ path('pokemon.show', {name: 'PLACEHOLDER'}) }}`.replace('PLACEHOLDER', randomId);
+		}
+	</script>
 {% endblock %}

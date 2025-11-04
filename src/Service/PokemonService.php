@@ -38,4 +38,14 @@ class PokemonService
     $data = $response->toArray();
     return $data;
   }
+
+  public function searchByName(string $name)
+  {
+    //code to search pokemons by name from API
+    $allPokemons = $this->getAll(2000, 0); // Get a large number of pokemons to search from
+    $filtered = array_filter($allPokemons['results'], function ($pokemon) use ($name) {
+      return stripos($pokemon['name'], $name) !== false;
+    });
+    return array_values($filtered);
+  }
 }
