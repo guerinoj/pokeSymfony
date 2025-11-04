@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello HomeController!
+{% endblock %}
+
+{% block body %}
+	<h1>Pokemon Center</h1>
+	<p>Welcome to the Pokemon Center! Here, trainers can heal their Pokemon and prepare for their next adventure.</p>
+	<a href="{{ path('pokemon.index') }}" class="btn btn-primary">View Pokemon List</a>
+{% endblock %}

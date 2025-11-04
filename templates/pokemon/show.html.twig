@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello PokemonController!
+{% endblock %}
+
+{% block body %}
+	<div>
+		<h1>Pokemon Details:
+			{{ pokemon_name }}</h1>
+		{% if pokemon_data %}
+			<ul class="list-group">
+				<li class="list-group-item">
+					<strong>ID:</strong>
+					{{ pokemon_data.id }}</li>
+				<li class="list-group-item">
+					<strong>Name:</strong>
+					{{ pokemon_data.name }}</li>
+				<li class="list-group-item">
+					<strong>Height:</strong>
+					{{ pokemon_data.height }}</li>
+				<li class="list-group-item">
+					<strong>Weight:</strong>
+					{{ pokemon_data.weight }}</li>
+				<li class="list-group-item">
+					<strong>Base Experience:</strong>
+					{{ pokemon_data.base_experience }}</li>
+			</ul>
+		{% else %}
+			<p class="text-danger">Pokemon not found.</p>
+		{% endif %}
+	</div>
+{% endblock %}

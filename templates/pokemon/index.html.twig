@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello PokemonController!
+{% endblock %}
+
+{% block body %}
+	<div>
+		<h1>Pokemon List</h1>
+		<ul class="list-group">
+			{% for pokemon in pokemon_list %}
+				<li class="list-group-item">
+					<a href="{{ path('pokemon.show', { name: pokemon.name }) }}">
+						<strong>{{ pokemon.name }}</strong>
+					</a>
+				</li>
+			{% else %}
+				<li class="list-group-item">No Pokemon found.</li>
+			{% endfor %}
+		</ul>
+	</div>
+{% endblock %}
