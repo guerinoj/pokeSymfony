@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -13,10 +14,28 @@ final class PokemonController extends AbstractController
         private HttpClientInterface $httpClient
     ) {}
     #[Route('/pokemon', name: 'pokemon.index')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+
+        $pokemonData = $this->getAll($limit, $offset);
+
+        // Calculer le nombre total de pages
+        $totalPokemon = $pokemonData['count'];
+        $totalPages = ceil($totalPokemon / $limit);
+
         return $this->render('pokemon/index.html.twig', [
-            'pokemon_list' => $this->getAll(),
+            'pokemon_list' => $pokemonData['results'],
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'total_pokemon' => $totalPokemon,
+            'limit' => $limit,
+            'has_previous' => $page > 1,
+            'has_next' => $page < $totalPages,
+            'previous_page' => $page - 1,
+            'next_page' => $page + 1,
         ]);
     }
 
@@ -30,12 +49,17 @@ final class PokemonController extends AbstractController
         ]);
     }
 
-    public function getAll()
+    public function getAll($limit = 20, $offset = 0)
     {
-        //code to get all pokemons from API
-        $response = $this->httpClient->request('GET', 'https://pokeapi.co/api/v2/pokemon');
+        //code to get all pokemons from API with pagination
+        $response = $this->httpClient->request('GET', 'https://pokeapi.co/api/v2/pokemon', [
+            'query' => [
+                'limit' => $limit,
+                'offset' => $offset,
+            ]
+        ]);
         $data = $response->toArray();
-        return $data['results'];
+        return $data;
     }
 
     public function getById(int $id)
