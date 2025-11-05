@@ -84,4 +84,58 @@ final class PokemonController extends AbstractController
             'pokemon_data' => $this->pokemonService->getByName($name),
         ]);
     }
+
+    #[Route('/pokemon/battle/select', name: 'pokemon.battle.select')]
+    public function battleSelect(Request $request): Response
+    {
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+
+        $pokemonData = $this->pokemonService->getAll($limit, $offset);
+
+        // Calculer le nombre total de pages
+        $totalPokemon = $pokemonData['count'];
+        $totalPages = ceil($totalPokemon / $limit);
+
+        return $this->render('pokemon/battle_select.html.twig', [
+            'pokemon_list' => $pokemonData['results'],
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'total_pokemon' => $totalPokemon,
+            'limit' => $limit,
+            'has_previous' => $page > 1,
+            'has_next' => $page < $totalPages,
+            'previous_page' => $page - 1,
+            'next_page' => $page + 1,
+        ]);
+    }
+
+    #[Route('/pokemon/battle/fight', name: 'pokemon.battle.fight')]
+    public function battleFight(Request $request): Response
+    {
+        $pokemon1 = $request->query->get('pokemon1');
+        $pokemon2 = $request->query->get('pokemon2');
+
+        if (!$pokemon1 || !$pokemon2) {
+            $this->addFlash('error', 'Veuillez sélectionner deux Pokémon pour le combat.');
+            return $this->redirectToRoute('pokemon.battle.select');
+        }
+
+        if ($pokemon1 === $pokemon2) {
+            $this->addFlash('error', 'Un Pokémon ne peut pas se battre contre lui-même !');
+            return $this->redirectToRoute('pokemon.battle.select');
+        }
+
+        try {
+            $battleResult = $this->pokemonService->battle($pokemon1, $pokemon2);
+
+            return $this->render('pokemon/battle_result.html.twig', [
+                'battleResult' => $battleResult,
+            ]);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors du combat : ' . $e->getMessage());
+            return $this->redirectToRoute('pokemon.battle.select');
+        }
+    }
 }

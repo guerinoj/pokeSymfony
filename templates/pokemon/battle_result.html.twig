@@ -1,0 +1,213 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Résultat du Combat - {{ battleResult.pokemon1.name|title }} vs {{ battleResult.pokemon2.name|title }}{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">⚔️ Résultat du Combat</h1>
+
+    <!-- Informations des combattants -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card {% if battleResult.winner and battleResult.winner.name == battleResult.pokemon1.name %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0">🔴 {{ battleResult.pokemon1.name|title }}</h5>
+                    {% if battleResult.winner and battleResult.winner.name == battleResult.pokemon1.name %}
+                        <span class="badge bg-success">🏆 VAINQUEUR</span>
+                    {% else %}
+                        <span class="badge bg-danger">💀 KO</span>
+                    {% endif %}
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ battleResult.pokemon1.sprites.front_default }}" 
+                         alt="{{ battleResult.pokemon1.name }}" 
+                         class="img-fluid mb-3" 
+                         style="max-width: 150px;">
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">PV Finaux</small>
+                            <div class="progress mb-2">
+                                {% set hpPercentage = (battleResult.pokemon1CurrentHp / battleResult.pokemon1Stats.hp) * 100 %}
+                                <div class="progress-bar {% if hpPercentage > 50 %}bg-success{% elseif hpPercentage > 25 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                     style="width: {{ hpPercentage }}%"></div>
+                            </div>
+                            <strong>{{ battleResult.pokemon1CurrentHp }} / {{ battleResult.pokemon1Stats.hp }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Type</small><br>
+                            {% for type in battleResult.pokemon1.types %}
+                                <span class="badge bg-secondary">{{ type.type.name|title }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <small class="text-muted">ATK</small><br>
+                            <strong>{{ battleResult.pokemon1Stats.attack }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <small class="text-muted">DEF</small><br>
+                            <strong>{{ battleResult.pokemon1Stats.defense }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <small class="text-muted">VIT</small><br>
+                            <strong>{{ battleResult.pokemon1Stats.speed }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <small class="text-muted">PV Max</small><br>
+                            <strong>{{ battleResult.pokemon1Stats.hp }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card {% if battleResult.winner and battleResult.winner.name == battleResult.pokemon2.name %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-header bg-danger text-white text-center">
+                    <h5 class="mb-0">🔵 {{ battleResult.pokemon2.name|title }}</h5>
+                    {% if battleResult.winner and battleResult.winner.name == battleResult.pokemon2.name %}
+                        <span class="badge bg-success">🏆 VAINQUEUR</span>
+                    {% else %}
+                        <span class="badge bg-danger">💀 KO</span>
+                    {% endif %}
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ battleResult.pokemon2.sprites.front_default }}" 
+                         alt="{{ battleResult.pokemon2.name }}" 
+                         class="img-fluid mb-3" 
+                         style="max-width: 150px;">
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">PV Finaux</small>
+                            <div class="progress mb-2">
+                                {% set hpPercentage = (battleResult.pokemon2CurrentHp / battleResult.pokemon2Stats.hp) * 100 %}
+                                <div class="progress-bar {% if hpPercentage > 50 %}bg-success{% elseif hpPercentage > 25 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                     style="width: {{ hpPercentage }}%"></div>
+                            </div>
+                            <strong>{{ battleResult.pokemon2CurrentHp }} / {{ battleResult.pokemon2Stats.hp }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Type</small><br>
+                            {% for type in battleResult.pokemon2.types %}
+                                <span class="badge bg-secondary">{{ type.type.name|title }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <small class="text-muted">ATK</small><br>
+                            <strong>{{ battleResult.pokemon2Stats.attack }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <small class="text-muted">DEF</small><br>
+                            <strong>{{ battleResult.pokemon2Stats.defense }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <small class="text-muted">VIT</small><br>
+                            <strong>{{ battleResult.pokemon2Stats.speed }}</strong>
+                        </div>
+                        <div class="col-3">
+                            <small class="text-muted">PV Max</small><br>
+                            <strong>{{ battleResult.pokemon2Stats.hp }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résumé du combat -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">📊 Résumé du Combat</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h6>Durée</h6>
+                    <span class="badge bg-primary fs-6">{{ battleResult.turns }} tours</span>
+                </div>
+                <div class="col-md-4">
+                    <h6>Vainqueur</h6>
+                    {% if battleResult.winner %}
+                        <span class="badge bg-success fs-6">{{ battleResult.winner.name|title }}</span>
+                    {% else %}
+                        <span class="badge bg-warning fs-6">Match nul</span>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <h6>Avantage initial</h6>
+                    {% if battleResult.pokemon1Stats.speed > battleResult.pokemon2Stats.speed %}
+                        <span class="badge bg-info fs-6">{{ battleResult.pokemon1.name|title }} (Vitesse)</span>
+                    {% elseif battleResult.pokemon2Stats.speed > battleResult.pokemon1Stats.speed %}
+                        <span class="badge bg-info fs-6">{{ battleResult.pokemon2.name|title }} (Vitesse)</span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6">Égalité (Tirage au sort)</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Journal du combat -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📜 Journal du Combat</h5>
+        </div>
+        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            {% for logEntry in battleResult.battleLog %}
+                <div class="mb-2 p-2 {% if 'Tour' in logEntry %}bg-light border-start border-primary border-3{% elseif 'KO' in logEntry %}bg-danger bg-opacity-10 border-start border-danger border-3{% elseif 'remporte' in logEntry %}bg-success bg-opacity-10 border-start border-success border-3{% endif %}">
+                    {{ logEntry }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="text-center">
+        <a href="{{ path('pokemon.battle.fight', {'pokemon1': battleResult.pokemon1.name, 'pokemon2': battleResult.pokemon2.name}) }}" 
+           class="btn btn-warning me-2">
+            🔄 Refaire ce Combat
+        </a>
+        <a href="{{ path('pokemon.battle.select') }}" class="btn btn-primary me-2">
+            🥊 Nouveau Combat
+        </a>
+        <a href="{{ path('pokemon.index') }}" class="btn btn-secondary">
+            ← Retour à la liste
+        </a>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.badge {
+    font-size: 0.8em;
+}
+
+.progress {
+    height: 8px;
+}
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+}
+</style>
+{% endblock %}

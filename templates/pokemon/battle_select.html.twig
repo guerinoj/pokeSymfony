@@ -1,0 +1,171 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sélection de Combat - Pokémon{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">🥊 Sélection de Combat Pokémon</h1>
+    
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Instructions</h5>
+            <p class="card-text">
+                Sélectionnez deux Pokémon différents pour organiser un combat ! 
+                Cliquez sur "Sélectionner" sous chaque Pokémon pour les choisir.
+            </p>
+        </div>
+    </div>
+
+    <div id="selected-pokemon" class="mb-4">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">🔴 Pokémon 1</h5>
+                    </div>
+                    <div class="card-body" id="pokemon1-selection">
+                        <p class="text-muted">Aucun Pokémon sélectionné</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">🔵 Pokémon 2</h5>
+                    </div>
+                    <div class="card-body" id="pokemon2-selection">
+                        <p class="text-muted">Aucun Pokémon sélectionné</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <button id="battle-btn" class="btn btn-success btn-lg" disabled>
+                ⚔️ Commencer le Combat !
+            </button>
+        </div>
+    </div>
+
+    <h3>Liste des Pokémon disponibles</h3>
+    
+    <div class="row">
+        {% for pokemon in pokemon_list %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">{{ pokemon.name|title }}</h6>
+                        <div class="btn-group-vertical w-100">
+                            <button class="btn btn-outline-primary btn-sm select-pokemon" 
+                                    data-pokemon="{{ pokemon.name }}" 
+                                    data-position="1">
+                                Sélectionner comme Pokémon 1
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm select-pokemon" 
+                                    data-pokemon="{{ pokemon.name }}" 
+                                    data-position="2">
+                                Sélectionner comme Pokémon 2
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+        <nav aria-label="Navigation des pages">
+            <ul class="pagination justify-content-center">
+                {% if has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('pokemon.battle.select', {'page': previous_page}) }}">Précédent</a>
+                    </li>
+                {% endif %}
+
+                {% for page in range(max(1, current_page - 2), min(total_pages, current_page + 2)) %}
+                    <li class="page-item {{ page == current_page ? 'active' : '' }}">
+                        <a class="page-link" href="{{ path('pokemon.battle.select', {'page': page}) }}">{{ page }}</a>
+                    </li>
+                {% endfor %}
+
+                {% if has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('pokemon.battle.select', {'page': next_page}) }}">Suivant</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ path('pokemon.index') }}" class="btn btn-secondary">
+            ← Retour à la liste des Pokémon
+        </a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let selectedPokemon = {
+        pokemon1: null,
+        pokemon2: null
+    };
+
+    const battleBtn = document.getElementById('battle-btn');
+    const pokemon1Selection = document.getElementById('pokemon1-selection');
+    const pokemon2Selection = document.getElementById('pokemon2-selection');
+
+    document.querySelectorAll('.select-pokemon').forEach(button => {
+        button.addEventListener('click', function() {
+            const pokemonName = this.dataset.pokemon;
+            const position = this.dataset.position;
+            const key = 'pokemon' + position;
+
+            selectedPokemon[key] = pokemonName;
+
+            // Mettre à jour l'affichage
+            const selectionDiv = position === '1' ? pokemon1Selection : pokemon2Selection;
+            selectionDiv.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between">
+                    <strong>${pokemonName.charAt(0).toUpperCase() + pokemonName.slice(1)}</strong>
+                    <button class="btn btn-sm btn-outline-secondary clear-selection" data-position="${position}">
+                        ✕
+                    </button>
+                </div>
+            `;
+
+            // Ajouter l'événement de suppression
+            selectionDiv.querySelector('.clear-selection').addEventListener('click', function() {
+                selectedPokemon[key] = null;
+                selectionDiv.innerHTML = '<p class="text-muted">Aucun Pokémon sélectionné</p>';
+                updateBattleButton();
+            });
+
+            updateBattleButton();
+        });
+    });
+
+    function updateBattleButton() {
+        if (selectedPokemon.pokemon1 && selectedPokemon.pokemon2 && selectedPokemon.pokemon1 !== selectedPokemon.pokemon2) {
+            battleBtn.disabled = false;
+            battleBtn.onclick = function() {
+                window.location.href = "{{ path('pokemon.battle.fight') }}?pokemon1=" + 
+                    encodeURIComponent(selectedPokemon.pokemon1) + 
+                    "&pokemon2=" + encodeURIComponent(selectedPokemon.pokemon2);
+            };
+        } else {
+            battleBtn.disabled = true;
+            battleBtn.onclick = null;
+        }
+    }
+});
+</script>
+{% endblock %}

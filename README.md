@@ -449,7 +449,7 @@ assets/             # Assets frontend
 4. Push vers la branche (`git push origin feature/AmazingFeature`)
 5. Ouvrir une Pull Request
 
-## � Documentation
+## 📚 Documentation
 
 - [Documentation Symfony](https://symfony.com/doc)
 - [Symfony Best Practices](https://symfony.com/doc/current/best_practices.html)
@@ -458,20 +458,46 @@ assets/             # Assets frontend
 - [PokéAPI Documentation](https://pokeapi.co/docs/v2) - API des données Pokémon
 - [Symfony HTTP Client](https://symfony.com/doc/current/http_client.html) - Pour les appels d'API
 
+## 🎓 Guide d'Apprentissage Symfony
+
+### 🥊 Système de Combat - Étude de Cas
+Le projet inclut un **système de combat Pokémon complet** qui sert d'exemple pédagogique pour comprendre les concepts avancés de Symfony :
+
+👉 **[Guide Complet du Système de Combat](COMBAT_SYSTEM.md)**
+
+**Ce que vous y apprendrez :**
+- 🏗️ **Architecture MVC** - Séparation des responsabilités
+- 🔧 **Service Layer Pattern** - Logique métier externalisée
+- 💉 **Injection de Dépendances** - Découplage et testabilité
+- 🛣️ **Routing avancé** - Gestion des paramètres GET
+- 🎨 **Templates Twig** - Héritage et logique conditionnelle
+- ⚠️ **Gestion d'erreurs** - Validation et messages Flash
+- 🔄 **Appels d'API** - HttpClient et gestion des réponses
+- 📝 **Variables dynamiques PHP** - Techniques avancées
+
+**Fonctionnalités du combat :**
+- Sélection interactive de 2 Pokémon
+- Calcul automatique basé sur les statistiques réelles
+- Journal détaillé de chaque action
+- Interface responsive avec résultats visuels
+
+Ce système illustre parfaitement comment structurer une application Symfony en respectant les bonnes pratiques et les principes SOLID.
+
 ## 🎯 Fonctionnalités
 
 ### Actuellement implémentées
 - 🏠 Page d'accueil
 - 🔍 Affichage des détails d'un Pokémon via l'API
+- 📋 Liste paginée des Pokémon avec tri
+- 🔍 Recherche par nom
+- 🥊 **Système de combat Pokémon** - [Guide détaillé](COMBAT_SYSTEM.md)
 - 🎨 Interface responsive avec Bootstrap
 - 🚀 Navigation entre les Pokémon
 
 ### À venir
-- 📋 Liste paginée des Pokémon
-- 🔍 Recherche par nom/type
 - ❤️ Système de favoris
-- 📊 Statistiques détaillées
-- 🎲 Pokémon aléatoire
+- 📊 Statistiques détaillées avancées
+- 🎲 Pokémon aléatoire amélioré
 - 📱 PWA (Progressive Web App)
 
 ---
