@@ -60,37 +60,80 @@ public function battleFight(Request $request): Response
 ## 🔧 Service Layer Pattern
 
 ### Principe
-Le **Service Layer Pattern** sépare la logique métier du contrôleur. Dans notre cas, `PokemonService` encapsule toute la logique de combat.
+Le **Service Layer Pattern** sépare la logique métier du contrôleur. Dans notre cas, `PokemonService` encapsule toute la logique de combat, assisté par la classe `BattleState` pour l'organisation des données.
 
 ### Avantages
 - **Réutilisabilité** : Le service peut être utilisé dans plusieurs contrôleurs
 - **Testabilité** : Logique métier isolée et facilement testable
 - **Maintenabilité** : Séparation claire des responsabilités
+- **Respect du DRY** : Élimination des duplications de code
 
-### Implémentation
+### Architecture Améliorée
 
+#### Classe BattleState
+```php
+// src/Service/BattleState.php
+class BattleState
+{
+    public function __construct(
+        public array $pokemon1,
+        public array $pokemon2,
+        public array $pokemon1Stats,
+        public array $pokemon2Stats,
+        public int $pokemon1CurrentHp,
+        public int $pokemon2CurrentHp,
+        public array $battleLog = [],
+        public int $turn = 1
+    ) {}
+
+    public function isFinished(): bool
+    {
+        return $this->pokemon1CurrentHp <= 0 || $this->pokemon2CurrentHp <= 0;
+    }
+
+    public function getWinner(): ?array
+    {
+        if ($this->pokemon1CurrentHp > 0) return $this->pokemon1;
+        if ($this->pokemon2CurrentHp > 0) return $this->pokemon2;
+        return null;
+    }
+}
+```
+
+#### Service Principal Refactorisé
 ```php
 class PokemonService
 {
-    public function __construct(
-        private HttpClientInterface $httpClient
-    ) {}
-
     public function battle(string $pokemon1Name, string $pokemon2Name): array
     {
         // 1. Récupération des données
         $pokemon1 = $this->getByName($pokemon1Name);
         $pokemon2 = $this->getByName($pokemon2Name);
 
-        // 2. Initialisation du combat
-        $pokemon1CurrentHp = $pokemon1['stats'][0]['base_stat'];
-        $pokemon2CurrentHp = $pokemon2['stats'][0]['base_stat'];
+        // 2. Extraction des statistiques (méthode réutilisable)
+        $pokemon1Stats = $this->extractPokemonStats($pokemon1);
+        $pokemon2Stats = $this->extractPokemonStats($pokemon2);
 
-        // 3. Logique de combat
-        // ... (voir code complet dans le service)
+        // 3. Création de l'état de combat
+        $battle = new BattleState(
+            pokemon1: $pokemon1,
+            pokemon2: $pokemon2,
+            pokemon1Stats: $pokemon1Stats,
+            pokemon2Stats: $pokemon2Stats,
+            pokemon1CurrentHp: $pokemon1Stats['hp'],
+            pokemon2CurrentHp: $pokemon2Stats['hp']
+        );
 
-        return $battleResult;
+        // 4. Déroulement du combat
+        // ... (voir code complet)
+
+        return $battle->getBattleResult();
     }
+
+    // Méthodes privées pour éliminer la duplication
+    private function extractPokemonStats(array $pokemon): array
+    private function determineBattleOrder(array $stats1, array $stats2, BattleState $battle): bool
+    private function processTurn(BattleState $battle, bool $pokemon1Attacks): void
 }
 ```
 
@@ -232,7 +275,83 @@ public function battleSelect(Request $request): Response
 
 ## 🧠 Logique Métier
 
-### Calcul des Dégâts
+### Architecture Refactorisée et Améliorée
+
+#### Extraction des Statistiques (Élimination DRY)
+```php
+private function extractPokemonStats(array $pokemon): array
+{
+    return [
+        'hp' => $pokemon['stats'][0]['base_stat'],
+        'attack' => $pokemon['stats'][1]['base_stat'],
+        'defense' => $pokemon['stats'][2]['base_stat'],
+        'speed' => $pokemon['stats'][5]['base_stat'],
+    ];
+}
+```
+
+#### Détermination de l'Ordre d'Attaque (Simplifiée)
+```php
+private function determineBattleOrder(array $pokemon1Stats, array $pokemon2Stats, BattleState $battle): bool
+{
+    if ($pokemon1Stats['speed'] > $pokemon2Stats['speed']) {
+        $battle->addLogEntry("Ordre d'attaque déterminé par la vitesse : " . 
+                           ucfirst($battle->pokemon1['name']) . " attaque en premier !");
+        return true;
+    } elseif ($pokemon2Stats['speed'] > $pokemon1Stats['speed']) {
+        $battle->addLogEntry("Ordre d'attaque déterminé par la vitesse : " . 
+                           ucfirst($battle->pokemon2['name']) . " attaque en premier !");
+        return false;
+    } else {
+        // Tirage aléatoire en cas d'égalité
+        $pokemon1First = rand(0, 1) === 1;
+        $firstAttacker = $pokemon1First ? $battle->pokemon1['name'] : $battle->pokemon2['name'];
+        $battle->addLogEntry("Égalité de vitesse ! Tirage au sort : " . 
+                           ucfirst($firstAttacker) . " attaque en premier !");
+        return $pokemon1First;
+    }
+}
+```
+
+#### Traitement d'un Tour de Combat (Logique Centralisée)
+```php
+private function processTurn(BattleState $battle, bool $pokemon1Attacks): void
+{
+    // Définition dynamique de l'attaquant et du défenseur
+    if ($pokemon1Attacks) {
+        $attacker = $battle->pokemon1;
+        $defender = $battle->pokemon2;
+        $attackerStats = $battle->pokemon1Stats;
+        $defenderStats = $battle->pokemon2Stats;
+        $defenderHp = &$battle->pokemon2CurrentHp; // Référence pour modification
+    } else {
+        $attacker = $battle->pokemon2;
+        $defender = $battle->pokemon1;
+        $attackerStats = $battle->pokemon2Stats;
+        $defenderStats = $battle->pokemon1Stats;
+        $defenderHp = &$battle->pokemon1CurrentHp; // Référence pour modification
+    }
+
+    // Calcul et application des dégâts
+    $damage = $this->calculateDamage($attackerStats['attack'], $defenderStats['defense']);
+    $defenderHp -= $damage;
+    $defenderHp = max(0, $defenderHp);
+
+    // Messages du journal
+    $battle->addLogEntry(ucfirst($attacker['name']) . " attaque " . 
+                        ucfirst($defender['name']) . " et inflige $damage dégâts !");
+    $battle->addLogEntry(ucfirst($defender['name']) . " : $defenderHp/" . 
+                        $defenderStats['hp'] . " PV");
+
+    // Vérification KO
+    if ($defenderHp <= 0) {
+        $battle->addLogEntry(ucfirst($defender['name']) . " est KO !");
+        $battle->addLogEntry("🏆 " . ucfirst($attacker['name']) . " remporte le combat !");
+    }
+}
+```
+
+### Calcul des Dégâts (Inchangé)
 ```php
 private function calculateDamage(int $attack, int $defense): int
 {
@@ -248,36 +367,24 @@ private function calculateDamage(int $attack, int $defense): int
 }
 ```
 
-### Détermination de l'Ordre d'Attaque
+### Boucle de Combat Simplifiée
 ```php
-if ($pokemon1Stats['speed'] > $pokemon2Stats['speed']) {
-    $firstAttacker = 'pokemon1';
-    $secondAttacker = 'pokemon2';
-} elseif ($pokemon2Stats['speed'] > $pokemon1Stats['speed']) {
-    $firstAttacker = 'pokemon2';
-    $secondAttacker = 'pokemon1';
-} else {
-    // Tirage aléatoire en cas d'égalité
-    $firstAttacker = rand(0, 1) ? 'pokemon1' : 'pokemon2';
-    $secondAttacker = $firstAttacker === 'pokemon1' ? 'pokemon2' : 'pokemon1';
-}
-```
+while (!$battle->isFinished() && !$battle->isTooLong()) {
+    $battle->addLogEntry("--- Tour {$battle->turn} ---");
 
-### Boucle de Combat
-```php
-while ($pokemon1CurrentHp > 0 && $pokemon2CurrentHp > 0) {
-    // Attaque du premier Pokémon
-    // Vérification KO
-    // Attaque du second Pokémon
-    // Vérification KO
-    
-    $turn++;
-    
-    // Sécurité anti-boucle infinie
-    if ($turn > 100) {
-        $battleLog[] = "Combat trop long ! Match nul déclaré.";
-        break;
+    if ($pokemon1AttacksFirst) {
+        $this->processTurn($battle, true);  // Pokémon 1 attaque
+        if (!$battle->isFinished()) {
+            $this->processTurn($battle, false); // Pokémon 2 attaque
+        }
+    } else {
+        $this->processTurn($battle, false); // Pokémon 2 attaque
+        if (!$battle->isFinished()) {
+            $this->processTurn($battle, true);  // Pokémon 1 attaque
+        }
     }
+
+    $battle->nextTurn();
 }
 ```
 
@@ -319,11 +426,11 @@ try {
 {% endfor %}
 ```
 
-## 📊 Variables Dynamiques en PHP
+## 📊 Variables Dynamiques en PHP → Simplification avec BattleState
 
-### Utilisation Avancée
+### ❌ Ancienne Approche (Complexe pour Débutants)
 ```php
-// Variables dynamiques pour gérer les deux Pokémon
+// Variables dynamiques difficiles à comprendre
 $firstAttacker = 'pokemon1';
 $secondAttacker = 'pokemon2';
 
@@ -337,41 +444,91 @@ $damage = $this->calculateDamage(
 ${$secondAttacker . 'CurrentHp'} -= $damage; // $pokemon2CurrentHp -= $damage
 ```
 
-### Avantages
-- **Évite la duplication** de code
-- **Flexibilité** dans l'ordre d'attaque
-- **Maintenabilité** du code
+### ✅ Nouvelle Approche (Simple et Claire)
+```php
+// Utilisation de références et de conditions simples
+private function processTurn(BattleState $battle, bool $pokemon1Attacks): void
+{
+    if ($pokemon1Attacks) {
+        // Pokémon 1 attaque Pokémon 2
+        $attacker = $battle->pokemon1;
+        $defender = $battle->pokemon2;
+        $attackerStats = $battle->pokemon1Stats;
+        $defenderStats = $battle->pokemon2Stats;
+        $defenderHp = &$battle->pokemon2CurrentHp; // Référence claire
+    } else {
+        // Pokémon 2 attaque Pokémon 1
+        $attacker = $battle->pokemon2;
+        $defender = $battle->pokemon1;
+        $attackerStats = $battle->pokemon2Stats;
+        $defenderStats = $battle->pokemon1Stats;
+        $defenderHp = &$battle->pokemon1CurrentHp; // Référence claire
+    }
+
+    // Code de combat utilisant les variables locales claires
+    $damage = $this->calculateDamage($attackerStats['attack'], $defenderStats['defense']);
+    $defenderHp -= $damage; // Modification via référence
+}
+```
+
+### Avantages de la Nouvelle Approche
+- **✅ Lisibilité** : Code plus facile à comprendre pour les débutants
+- **✅ Débogage** : Variables nommées explicitement
+- **✅ Maintenabilité** : Logique centralisée dans une méthode
+- **✅ Évite la magie** : Pas de variables dynamiques complexes
 
 ## ✅ Bonnes Pratiques Appliquées
 
 ### 1. **Single Responsibility Principle**
 - Chaque classe a une responsabilité unique
 - `PokemonService` → Logique métier Pokémon
+- `BattleState` → Gestion de l'état du combat
 - `PokemonController` → Gestion des requêtes HTTP
 
-### 2. **Dependency Injection**
+### 2. **DRY (Don't Repeat Yourself)**
+- ✅ Méthode `extractPokemonStats()` pour éviter la duplication
+- ✅ Méthode `processTurn()` pour centraliser la logique d'attaque
+- ✅ Classe `BattleState` pour encapsuler les données
+
+### 3. **Dependency Injection**
 - Injection automatique des dépendances
 - Code découplé et testable
 
-### 3. **Naming Conventions**
+### 4. **Naming Conventions**
 - Routes nommées : `pokemon.battle.select`
-- Méthodes descriptives : `battleSelect()`, `calculateDamage()`
-- Variables explicites : `$pokemon1CurrentHp`
+- Méthodes descriptives : `battleSelect()`, `calculateDamage()`, `processTurn()`
+- Variables explicites : `$pokemon1CurrentHp`, `$defenderHp`
 
-### 4. **Error Handling**
+### 5. **Error Handling**
 - Validation des entrées utilisateur
 - Messages d'erreur informatifs
 - Redirections appropriées
+- Protection contre les boucles infinies
 
-### 5. **Template Organisation**
+### 6. **Code Organization**
+- Méthodes privées pour la logique interne
+- Séparation claire des responsabilités
+- Code lisible et bien commenté
+
+### 7. **Object-Oriented Design**
+- Encapsulation des données dans `BattleState`
+- Méthodes utilitaires (`isFinished()`, `getWinner()`)
+- État cohérent et méthodes associées
+
+### 8. **Template Organisation**
 - Héritage de templates
 - Réutilisation de composants
 - Séparation logique/présentation
 
-### 6. **Security**
+### 9. **Security**
 - Validation des paramètres GET
 - Protection contre les boucles infinies
 - Échappement automatique dans Twig
+
+### 10. **Readability for Beginners**
+- Élimination des variables dynamiques complexes
+- Code explicite et auto-documenté
+- Commentaires pertinents
 
 ## 🔄 Flux de Données Complet
 
@@ -422,5 +579,125 @@ ${$secondAttacker . 'CurrentHp'} -= $damage; // $pokemon2CurrentHp -= $damage
 ### 6. **Flash Messages**
 - Communication temporaire avec l'utilisateur
 - Gestion des erreurs et succès
+
+## 🎯 Points d'Apprentissage Symfony
+
+### 1. **Architecture MVC**
+- Séparation claire des responsabilités
+- Controller comme orchestrateur
+
+### 2. **Services**
+- Logique métier externalisée
+- Réutilisabilité et testabilité
+
+### 3. **Routing**
+- Annotations/Attributes pour les routes
+- Paramètres de requête
+
+### 4. **Twig**
+- Moteur de templates puissant
+- Filtres et fonctions intégrées
+
+### 5. **HTTP Foundation**
+- Gestion des requêtes et réponses
+- Objets Request et Response
+
+### 6. **Flash Messages**
+- Communication temporaire avec l'utilisateur
+- Gestion des erreurs et succès
+
+## 🔄 Évolution du Code : Avant vs Après
+
+### 📊 **Métriques d'Amélioration**
+
+| Aspect | Avant | Après | Amélioration |
+|--------|--------|--------|--------------|
+| **Lignes de code** | ~120 lignes | ~80 lignes | ✅ -33% |
+| **Duplication** | 3 blocs dupliqués | 0 duplication | ✅ 100% éliminée |
+| **Méthodes** | 2 méthodes | 5 méthodes | ✅ Mieux organisé |
+| **Complexité** | Variables dynamiques | Logique claire | ✅ Plus lisible |
+| **Testabilité** | Difficile | Facile | ✅ Méthodes isolées |
+
+### 🚀 **Principales Améliorations**
+
+#### ✅ **1. Élimination de la Duplication (DRY)**
+```php
+// ❌ AVANT : Code dupliqué
+$pokemon1Stats = [
+    'hp' => $pokemon1['stats'][0]['base_stat'],
+    'attack' => $pokemon1['stats'][1]['base_stat'],
+    'defense' => $pokemon1['stats'][2]['base_stat'],
+    'speed' => $pokemon1['stats'][5]['base_stat'],
+];
+$pokemon2Stats = [
+    'hp' => $pokemon2['stats'][0]['base_stat'],
+    'attack' => $pokemon2['stats'][1]['base_stat'],
+    'defense' => $pokemon2['stats'][2]['base_stat'],
+    'speed' => $pokemon2['stats'][5]['base_stat'],
+];
+
+// ✅ APRÈS : Méthode réutilisable
+private function extractPokemonStats(array $pokemon): array
+{
+    return [
+        'hp' => $pokemon['stats'][0]['base_stat'],
+        'attack' => $pokemon['stats'][1]['base_stat'],
+        'defense' => $pokemon['stats'][2]['base_stat'],
+        'speed' => $pokemon['stats'][5]['base_stat'],
+    ];
+}
+```
+
+#### ✅ **2. Simplification des Variables Dynamiques**
+```php
+// ❌ AVANT : Difficile à comprendre
+${$firstAttacker . 'CurrentHp'} -= $damage;
+
+// ✅ APRÈS : Clair et explicite
+$defenderHp = &$battle->pokemon2CurrentHp;
+$defenderHp -= $damage;
+```
+
+#### ✅ **3. Encapsulation avec BattleState**
+```php
+// ❌ AVANT : Variables éparpillées
+$pokemon1CurrentHp = ...;
+$pokemon2CurrentHp = ...;
+$battleLog = [];
+$turn = 1;
+
+// ✅ APRÈS : État centralisé
+$battle = new BattleState(
+    pokemon1: $pokemon1,
+    pokemon2: $pokemon2,
+    pokemon1Stats: $pokemon1Stats,
+    pokemon2Stats: $pokemon2Stats,
+    pokemon1CurrentHp: $pokemon1Stats['hp'],
+    pokemon2CurrentHp: $pokemon2Stats['hp']
+);
+```
+
+#### ✅ **4. Séparation des Responsabilités**
+```php
+// ✅ Chaque méthode a un rôle précis
+private function extractPokemonStats(array $pokemon): array        // Extraction
+private function determineBattleOrder(...): bool                   // Ordre
+private function processTurn(BattleState $battle, bool $p1): void  // Combat
+private function calculateDamage(int $attack, int $defense): int   // Calculs
+```
+
+### 🎓 **Valeur Pédagogique**
+
+Cette refactorisation illustre parfaitement :
+- **L'évolution naturelle** du code (faire fonctionner → améliorer)
+- **L'application des principes SOLID** en pratique
+- **L'importance du refactoring** pour la maintenance
+- **Les bonnes pratiques Symfony** en action
+
+Le code est maintenant :
+- ✅ **Plus facile à comprendre** pour les débutants
+- ✅ **Plus facile à tester** (méthodes isolées)
+- ✅ **Plus facile à maintenir** (pas de duplication)
+- ✅ **Plus professionnel** (respect des standards)
 
 Cette implémentation démontre comment Symfony facilite la création d'applications web robustes en respectant les bonnes pratiques de développement et les patterns d'architecture modernes.

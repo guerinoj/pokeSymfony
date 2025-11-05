@@ -85,124 +85,130 @@ class PokemonService
     $pokemon1 = $this->getByName($pokemon1Name);
     $pokemon2 = $this->getByName($pokemon2Name);
 
-    // Initialiser les PV actuels
-    $pokemon1CurrentHp = $pokemon1['stats'][0]['base_stat']; // HP
-    $pokemon2CurrentHp = $pokemon2['stats'][0]['base_stat']; // HP
+    // Extraire les statistiques (méthode réutilisable)
+    $pokemon1Stats = $this->extractPokemonStats($pokemon1);
+    $pokemon2Stats = $this->extractPokemonStats($pokemon2);
 
-    // Extraire les statistiques
-    $pokemon1Stats = [
-      'hp' => $pokemon1['stats'][0]['base_stat'],
-      'attack' => $pokemon1['stats'][1]['base_stat'],
-      'defense' => $pokemon1['stats'][2]['base_stat'],
-      'speed' => $pokemon1['stats'][5]['base_stat'],
+    // Créer l'état de combat initial
+    $battle = new BattleState(
+      pokemon1: $pokemon1,
+      pokemon2: $pokemon2,
+      pokemon1Stats: $pokemon1Stats,
+      pokemon2Stats: $pokemon2Stats,
+      pokemon1CurrentHp: $pokemon1Stats['hp'],
+      pokemon2CurrentHp: $pokemon2Stats['hp']
+    );
+
+    // Messages d'introduction
+    $battle->addLogEntry("Le combat commence ! " . ucfirst($pokemon1['name']) . " vs " . ucfirst($pokemon2['name']));
+
+    // Déterminer l'ordre d'attaque
+    $pokemon1AttacksFirst = $this->determineBattleOrder($pokemon1Stats, $pokemon2Stats, $battle);
+
+    // Boucle de combat principale
+    while (!$battle->isFinished() && !$battle->isTooLong()) {
+      $battle->addLogEntry("--- Tour {$battle->turn} ---");
+
+      if ($pokemon1AttacksFirst) {
+        $this->processTurn($battle, true); // Pokémon 1 attaque
+        if (!$battle->isFinished()) {
+          $this->processTurn($battle, false); // Pokémon 2 attaque
+        }
+      } else {
+        $this->processTurn($battle, false); // Pokémon 2 attaque
+        if (!$battle->isFinished()) {
+          $this->processTurn($battle, true); // Pokémon 1 attaque
+        }
+      }
+
+      $battle->nextTurn();
+    }
+
+    // Gestion des cas particuliers
+    if ($battle->isTooLong()) {
+      $battle->addLogEntry("Combat trop long ! Match nul déclaré.");
+    }
+
+    return $battle->getBattleResult();
+  }
+
+  /**
+   * Extrait les statistiques d'un Pokémon de manière réutilisable
+   * Évite la duplication de code pour l'extraction des stats
+   */
+  private function extractPokemonStats(array $pokemon): array
+  {
+    return [
+      'hp' => $pokemon['stats'][0]['base_stat'],
+      'attack' => $pokemon['stats'][1]['base_stat'],
+      'defense' => $pokemon['stats'][2]['base_stat'],
+      'speed' => $pokemon['stats'][5]['base_stat'],
     ];
+  }
 
-    $pokemon2Stats = [
-      'hp' => $pokemon2['stats'][0]['base_stat'],
-      'attack' => $pokemon2['stats'][1]['base_stat'],
-      'defense' => $pokemon2['stats'][2]['base_stat'],
-      'speed' => $pokemon2['stats'][5]['base_stat'],
-    ];
-
-    $battleLog = [];
-    $turn = 1;
-
-    // Déterminer qui attaque en premier
-    $firstAttacker = null;
-    $secondAttacker = null;
-
+  /**
+   * Détermine qui attaque en premier basé sur la vitesse
+   * Retourne true si le Pokémon 1 attaque en premier, false sinon
+   */
+  private function determineBattleOrder(array $pokemon1Stats, array $pokemon2Stats, BattleState $battle): bool
+  {
     if ($pokemon1Stats['speed'] > $pokemon2Stats['speed']) {
-      $firstAttacker = 'pokemon1';
-      $secondAttacker = 'pokemon2';
+      $battle->addLogEntry("Ordre d'attaque déterminé par la vitesse : " . ucfirst($battle->pokemon1['name']) . " attaque en premier !");
+      return true;
     } elseif ($pokemon2Stats['speed'] > $pokemon1Stats['speed']) {
-      $firstAttacker = 'pokemon2';
-      $secondAttacker = 'pokemon1';
+      $battle->addLogEntry("Ordre d'attaque déterminé par la vitesse : " . ucfirst($battle->pokemon2['name']) . " attaque en premier !");
+      return false;
     } else {
       // Tirage aléatoire en cas d'égalité
-      $firstAttacker = rand(0, 1) ? 'pokemon1' : 'pokemon2';
-      $secondAttacker = $firstAttacker === 'pokemon1' ? 'pokemon2' : 'pokemon1';
+      $pokemon1First = rand(0, 1) === 1;
+      $firstAttacker = $pokemon1First ? $battle->pokemon1['name'] : $battle->pokemon2['name'];
+      $battle->addLogEntry("Égalité de vitesse ! Tirage au sort : " . ucfirst($firstAttacker) . " attaque en premier !");
+      return $pokemon1First;
+    }
+  }
+
+  /**
+   * Traite un tour d'attaque pour un Pokémon
+   * Centralise la logique d'attaque pour éviter la duplication
+   */
+  private function processTurn(BattleState $battle, bool $pokemon1Attacks): void
+  {
+    if ($pokemon1Attacks) {
+      // Pokémon 1 attaque Pokémon 2
+      $attacker = $battle->pokemon1;
+      $defender = $battle->pokemon2;
+      $attackerStats = $battle->pokemon1Stats;
+      $defenderStats = $battle->pokemon2Stats;
+      $defenderHp = &$battle->pokemon2CurrentHp;
+    } else {
+      // Pokémon 2 attaque Pokémon 1
+      $attacker = $battle->pokemon2;
+      $defender = $battle->pokemon1;
+      $attackerStats = $battle->pokemon2Stats;
+      $defenderStats = $battle->pokemon1Stats;
+      $defenderHp = &$battle->pokemon1CurrentHp;
     }
 
-    $battleLog[] = "Le combat commence ! " . ucfirst($pokemon1['name']) . " vs " . ucfirst($pokemon2['name']);
-    $battleLog[] = "Ordre d'attaque déterminé par la vitesse : " .
-      ucfirst(${$firstAttacker}['name']) . " attaque en premier !";
-
-    // Boucle de combat
-    while ($pokemon1CurrentHp > 0 && $pokemon2CurrentHp > 0) {
-      $battleLog[] = "--- Tour $turn ---";
-
-      // Premier attaquant
-      if (${$firstAttacker . 'CurrentHp'} > 0) {
-        $damage = $this->calculateDamage(
-          ${$firstAttacker . 'Stats'}['attack'],
-          ${$secondAttacker . 'Stats'}['defense']
-        );
-
-        ${$secondAttacker . 'CurrentHp'} -= $damage;
-        ${$secondAttacker . 'CurrentHp'} = max(0, ${$secondAttacker . 'CurrentHp'});
-
-        $battleLog[] = ucfirst(${$firstAttacker}['name']) . " attaque " .
-          ucfirst(${$secondAttacker}['name']) . " et inflige $damage dégâts !";
-        $battleLog[] = ucfirst(${$secondAttacker}['name']) . " : " .
-          ${$secondAttacker . 'CurrentHp'} . "/" . ${$secondAttacker . 'Stats'}['hp'] . " PV";
-
-        if (${$secondAttacker . 'CurrentHp'} <= 0) {
-          $battleLog[] = ucfirst(${$secondAttacker}['name']) . " est KO !";
-          $battleLog[] = "🏆 " . ucfirst(${$firstAttacker}['name']) . " remporte le combat !";
-          break;
-        }
-      }
-
-      // Deuxième attaquant
-      if (${$secondAttacker . 'CurrentHp'} > 0) {
-        $damage = $this->calculateDamage(
-          ${$secondAttacker . 'Stats'}['attack'],
-          ${$firstAttacker . 'Stats'}['defense']
-        );
-
-        ${$firstAttacker . 'CurrentHp'} -= $damage;
-        ${$firstAttacker . 'CurrentHp'} = max(0, ${$firstAttacker . 'CurrentHp'});
-
-        $battleLog[] = ucfirst(${$secondAttacker}['name']) . " attaque " .
-          ucfirst(${$firstAttacker}['name']) . " et inflige $damage dégâts !";
-        $battleLog[] = ucfirst(${$firstAttacker}['name']) . " : " .
-          ${$firstAttacker . 'CurrentHp'} . "/" . ${$firstAttacker . 'Stats'}['hp'] . " PV";
-
-        if (${$firstAttacker . 'CurrentHp'} <= 0) {
-          $battleLog[] = ucfirst(${$firstAttacker}['name']) . " est KO !";
-          $battleLog[] = "🏆 " . ucfirst(${$secondAttacker}['name']) . " remporte le combat !";
-          break;
-        }
-      }
-
-      $turn++;
-
-      // Sécurité pour éviter les boucles infinies
-      if ($turn > 100) {
-        $battleLog[] = "Combat trop long ! Match nul déclaré.";
-        break;
-      }
+    // Vérifier que l'attaquant est encore en vie
+    $attackerHp = $pokemon1Attacks ? $battle->pokemon1CurrentHp : $battle->pokemon2CurrentHp;
+    if ($attackerHp <= 0) {
+      return;
     }
 
-    // Déterminer le vainqueur
-    $winner = null;
-    if ($pokemon1CurrentHp > 0) {
-      $winner = $pokemon1;
-    } elseif ($pokemon2CurrentHp > 0) {
-      $winner = $pokemon2;
-    }
+    // Calculer et appliquer les dégâts
+    $damage = $this->calculateDamage($attackerStats['attack'], $defenderStats['defense']);
+    $defenderHp -= $damage;
+    $defenderHp = max(0, $defenderHp);
 
-    return [
-      'pokemon1' => $pokemon1,
-      'pokemon2' => $pokemon2,
-      'pokemon1Stats' => $pokemon1Stats,
-      'pokemon2Stats' => $pokemon2Stats,
-      'pokemon1CurrentHp' => $pokemon1CurrentHp,
-      'pokemon2CurrentHp' => $pokemon2CurrentHp,
-      'winner' => $winner,
-      'battleLog' => $battleLog,
-      'turns' => $turn - 1,
-    ];
+    // Ajouter les messages au journal
+    $battle->addLogEntry(ucfirst($attacker['name']) . " attaque " . ucfirst($defender['name']) . " et inflige $damage dégâts !");
+    $battle->addLogEntry(ucfirst($defender['name']) . " : $defenderHp/" . $defenderStats['hp'] . " PV");
+
+    // Vérifier si le défenseur est KO
+    if ($defenderHp <= 0) {
+      $battle->addLogEntry(ucfirst($defender['name']) . " est KO !");
+      $battle->addLogEntry("🏆 " . ucfirst($attacker['name']) . " remporte le combat !");
+    }
   }
 
   private function calculateDamage(int $attack, int $defense): int
