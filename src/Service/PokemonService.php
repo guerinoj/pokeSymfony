@@ -22,26 +22,26 @@ class PokemonService
         ]
       ]);
       $data = $response->toArray();
-      
+
       // Trier les résultats
       $results = $data['results'];
-      usort($results, function($a, $b) use ($sort) {
+      usort($results, function ($a, $b) use ($sort) {
         if ($sort === 'name_asc') {
           return strcasecmp($a['name'], $b['name']);
         } else {
           return strcasecmp($b['name'], $a['name']);
         }
       });
-      
+
       // Appliquer la pagination après tri
       $paginatedResults = array_slice($results, $offset, $limit);
-      
+
       return [
         'count' => $data['count'],
         'results' => $paginatedResults
       ];
     }
-    
+
     // Comportement par défaut (ordre de l'API)
     $response = $this->httpClient->request('GET', 'https://pokeapi.co/api/v2/pokemon', [
       'query' => [
