@@ -92,6 +92,10 @@ final class PokemonController extends AbstractController
         $limit = 20;
         $offset = ($page - 1) * $limit;
 
+        // Récupérer les sélections actuelles depuis les paramètres GET
+        $selectedPokemon1 = $request->query->get('pokemon1');
+        $selectedPokemon2 = $request->query->get('pokemon2');
+
         $pokemonData = $this->pokemonService->getAll($limit, $offset);
 
         // Calculer le nombre total de pages
@@ -108,6 +112,8 @@ final class PokemonController extends AbstractController
             'has_next' => $page < $totalPages,
             'previous_page' => $page - 1,
             'next_page' => $page + 1,
+            'selected_pokemon1' => $selectedPokemon1,
+            'selected_pokemon2' => $selectedPokemon2,
         ]);
     }
 

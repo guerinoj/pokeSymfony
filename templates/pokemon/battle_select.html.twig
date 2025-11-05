@@ -59,19 +59,36 @@
     <div class="row">
         {% for pokemon in pokemon_list %}
             <div class="col-md-4 col-lg-3 mb-3">
-                <div class="card h-100">
+                <div class="card h-100 {% if pokemon.name == selected_pokemon1 or pokemon.name == selected_pokemon2 %}border-success bg-light{% endif %}">
                     <div class="card-body text-center">
-                        <h6 class="card-title">{{ pokemon.name|title }}</h6>
+                        <h6 class="card-title">
+                            {{ pokemon.name|title }}
+                            {% if pokemon.name == selected_pokemon1 %}
+                                <span class="badge bg-primary">Pokémon 1</span>
+                            {% elseif pokemon.name == selected_pokemon2 %}
+                                <span class="badge bg-danger">Pokémon 2</span>
+                            {% endif %}
+                        </h6>
                         <div class="btn-group-vertical w-100">
-                            <button class="btn btn-outline-primary btn-sm select-pokemon" 
+                            <button class="btn {% if pokemon.name == selected_pokemon1 %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm select-pokemon" 
                                     data-pokemon="{{ pokemon.name }}" 
-                                    data-position="1">
-                                Sélectionner comme Pokémon 1
+                                    data-position="1"
+                                    {% if pokemon.name == selected_pokemon2 %}disabled title="Déjà sélectionné comme Pokémon 2"{% endif %}>
+                                {% if pokemon.name == selected_pokemon1 %}
+                                    ✓ Sélectionné comme Pokémon 1
+                                {% else %}
+                                    Sélectionner comme Pokémon 1
+                                {% endif %}
                             </button>
-                            <button class="btn btn-outline-danger btn-sm select-pokemon" 
+                            <button class="btn {% if pokemon.name == selected_pokemon2 %}btn-danger{% else %}btn-outline-danger{% endif %} btn-sm select-pokemon" 
                                     data-pokemon="{{ pokemon.name }}" 
-                                    data-position="2">
-                                Sélectionner comme Pokémon 2
+                                    data-position="2"
+                                    {% if pokemon.name == selected_pokemon1 %}disabled title="Déjà sélectionné comme Pokémon 1"{% endif %}>
+                                {% if pokemon.name == selected_pokemon2 %}
+                                    ✓ Sélectionné comme Pokémon 2
+                                {% else %}
+                                    Sélectionner comme Pokémon 2
+                                {% endif %}
                             </button>
                         </div>
                     </div>
@@ -86,19 +103,31 @@
             <ul class="pagination justify-content-center">
                 {% if has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ path('pokemon.battle.select', {'page': previous_page}) }}">Précédent</a>
+                        <a class="page-link" href="{{ path('pokemon.battle.select', {
+                            'page': previous_page,
+                            'pokemon1': selected_pokemon1,
+                            'pokemon2': selected_pokemon2
+                        }) }}">Précédent</a>
                     </li>
                 {% endif %}
 
                 {% for page in range(max(1, current_page - 2), min(total_pages, current_page + 2)) %}
                     <li class="page-item {{ page == current_page ? 'active' : '' }}">
-                        <a class="page-link" href="{{ path('pokemon.battle.select', {'page': page}) }}">{{ page }}</a>
+                        <a class="page-link" href="{{ path('pokemon.battle.select', {
+                            'page': page,
+                            'pokemon1': selected_pokemon1,
+                            'pokemon2': selected_pokemon2
+                        }) }}">{{ page }}</a>
                     </li>
                 {% endfor %}
 
                 {% if has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ path('pokemon.battle.select', {'page': next_page}) }}">Suivant</a>
+                        <a class="page-link" href="{{ path('pokemon.battle.select', {
+                            'page': next_page,
+                            'pokemon1': selected_pokemon1,
+                            'pokemon2': selected_pokemon2
+                        }) }}">Suivant</a>
                     </li>
                 {% endif %}
             </ul>
@@ -112,46 +141,106 @@
     </div>
 </div>
 
+<!-- Données pour JavaScript -->
+<script type="application/json" id="pokemon-selections">
+{{ {
+    'pokemon1': selected_pokemon1,
+    'pokemon2': selected_pokemon2,
+    'currentPage': current_page
+} | json_encode | raw }}
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Récupérer les sélections depuis le script JSON
+    const selectionsData = JSON.parse(document.getElementById('pokemon-selections').textContent);
     let selectedPokemon = {
-        pokemon1: null,
-        pokemon2: null
+        pokemon1: selectionsData.pokemon1,
+        pokemon2: selectionsData.pokemon2
     };
+    const currentPage = selectionsData.currentPage;
+
+    console.log('Sélections chargées:', selectedPokemon); // Debug
 
     const battleBtn = document.getElementById('battle-btn');
     const pokemon1Selection = document.getElementById('pokemon1-selection');
     const pokemon2Selection = document.getElementById('pokemon2-selection');
 
+    // Initialiser l'affichage avec les sélections existantes
+    updateDisplay();
+
     document.querySelectorAll('.select-pokemon').forEach(button => {
+        // Vérifier si le bouton n'est pas désactivé
+        if (button.disabled) return;
+        
         button.addEventListener('click', function() {
             const pokemonName = this.dataset.pokemon;
             const position = this.dataset.position;
             const key = 'pokemon' + position;
 
+            // Mettre à jour la sélection
             selectedPokemon[key] = pokemonName;
 
-            // Mettre à jour l'affichage
-            const selectionDiv = position === '1' ? pokemon1Selection : pokemon2Selection;
-            selectionDiv.innerHTML = `
+            // Rediriger vers la même page avec les nouveaux paramètres
+            const params = new URLSearchParams();
+            params.set('page', currentPage);
+            if (selectedPokemon.pokemon1) params.set('pokemon1', selectedPokemon.pokemon1);
+            if (selectedPokemon.pokemon2) params.set('pokemon2', selectedPokemon.pokemon2);
+
+            window.location.href = "{{ path('pokemon.battle.select') }}?" + params.toString();
+        });
+    });
+
+    function updateDisplay() {
+        // Mettre à jour Pokémon 1
+        if (selectedPokemon.pokemon1) {
+            pokemon1Selection.innerHTML = `
                 <div class="d-flex align-items-center justify-content-between">
-                    <strong>${pokemonName.charAt(0).toUpperCase() + pokemonName.slice(1)}</strong>
-                    <button class="btn btn-sm btn-outline-secondary clear-selection" data-position="${position}">
+                    <strong>${selectedPokemon.pokemon1.charAt(0).toUpperCase() + selectedPokemon.pokemon1.slice(1)}</strong>
+                    <button class="btn btn-sm btn-outline-secondary clear-selection" data-position="1">
                         ✕
                     </button>
                 </div>
             `;
+        } else {
+            pokemon1Selection.innerHTML = '<p class="text-muted">Aucun Pokémon sélectionné</p>';
+        }
 
-            // Ajouter l'événement de suppression
-            selectionDiv.querySelector('.clear-selection').addEventListener('click', function() {
+        // Mettre à jour Pokémon 2
+        if (selectedPokemon.pokemon2) {
+            pokemon2Selection.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between">
+                    <strong>${selectedPokemon.pokemon2.charAt(0).toUpperCase() + selectedPokemon.pokemon2.slice(1)}</strong>
+                    <button class="btn btn-sm btn-outline-secondary clear-selection" data-position="2">
+                        ✕
+                    </button>
+                </div>
+            `;
+        } else {
+            pokemon2Selection.innerHTML = '<p class="text-muted">Aucun Pokémon sélectionné</p>';
+        }
+
+        // Ajouter les événements de suppression
+        document.querySelectorAll('.clear-selection').forEach(button => {
+            button.addEventListener('click', function() {
+                const position = this.dataset.position;
+                const key = 'pokemon' + position;
+                
+                // Supprimer la sélection
                 selectedPokemon[key] = null;
-                selectionDiv.innerHTML = '<p class="text-muted">Aucun Pokémon sélectionné</p>';
-                updateBattleButton();
-            });
 
-            updateBattleButton();
+                // Rediriger vers la même page sans ce paramètre
+                const params = new URLSearchParams();
+                params.set('page', currentPage);
+                if (selectedPokemon.pokemon1) params.set('pokemon1', selectedPokemon.pokemon1);
+                if (selectedPokemon.pokemon2) params.set('pokemon2', selectedPokemon.pokemon2);
+
+                window.location.href = "{{ path('pokemon.battle.select') }}?" + params.toString();
+            });
         });
-    });
+
+        updateBattleButton();
+    }
 
     function updateBattleButton() {
         if (selectedPokemon.pokemon1 && selectedPokemon.pokemon2 && selectedPokemon.pokemon1 !== selectedPokemon.pokemon2) {
