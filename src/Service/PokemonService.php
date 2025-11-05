@@ -10,9 +10,39 @@ class PokemonService
     private HttpClientInterface $httpClient
   ) {}
 
-  public function getAll($limit = 20, $offset = 0)
+  public function getAll($limit = 20, $offset = 0, $sort = null)
   {
     //code to get all pokemons from API with pagination
+    if ($sort === 'name_asc' || $sort === 'name_desc') {
+      // Pour trier, on récupère plus de données puis on pagine
+      $response = $this->httpClient->request('GET', 'https://pokeapi.co/api/v2/pokemon', [
+        'query' => [
+          'limit' => 2000, // Récupérer beaucoup de pokémons pour le tri
+          'offset' => 0,
+        ]
+      ]);
+      $data = $response->toArray();
+      
+      // Trier les résultats
+      $results = $data['results'];
+      usort($results, function($a, $b) use ($sort) {
+        if ($sort === 'name_asc') {
+          return strcasecmp($a['name'], $b['name']);
+        } else {
+          return strcasecmp($b['name'], $a['name']);
+        }
+      });
+      
+      // Appliquer la pagination après tri
+      $paginatedResults = array_slice($results, $offset, $limit);
+      
+      return [
+        'count' => $data['count'],
+        'results' => $paginatedResults
+      ];
+    }
+    
+    // Comportement par défaut (ordre de l'API)
     $response = $this->httpClient->request('GET', 'https://pokeapi.co/api/v2/pokemon', [
       'query' => [
         'limit' => $limit,

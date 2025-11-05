@@ -48,6 +48,23 @@
 					<th scope="col">
 						<i class="fas fa-paw"></i>
 						Nom
+						<div class="btn-group btn-group-sm ms-2" role="group" aria-label="Tri par nom">
+							<a href="{{ path('pokemon.index', { page: 1, sort: 'name_asc' }) }}" 
+							   class="btn btn-outline-light btn-sm {{ current_sort == 'name_asc' ? 'active' : '' }}"
+							   title="Tri A→Z">
+								<i class="fas fa-sort-alpha-down"></i>
+							</a>
+							<a href="{{ path('pokemon.index', { page: 1, sort: 'name_desc' }) }}" 
+							   class="btn btn-outline-light btn-sm {{ current_sort == 'name_desc' ? 'active' : '' }}"
+							   title="Tri Z→A">
+								<i class="fas fa-sort-alpha-up"></i>
+							</a>
+							<a href="{{ path('pokemon.index', { page: 1 }) }}" 
+							   class="btn btn-outline-light btn-sm {{ current_sort is empty ? 'active' : '' }}"
+							   title="Ordre par défaut">
+								<i class="fas fa-sort"></i>
+							</a>
+						</div>
 					</th>
 					<th scope="col">
 						<i class="fas fa-cogs"></i>
@@ -85,7 +102,7 @@
 				<!-- Bouton Précédent -->
 				<li class="page-item {{ not has_previous ? 'disabled' : '' }}">
 					{% if has_previous %}
-						<a class="page-link" href="{{ path('pokemon.index', { page: previous_page }) }}" aria-label="Page précédente">
+						<a class="page-link" href="{{ path('pokemon.index', { page: previous_page, sort: current_sort }) }}" aria-label="Page précédente">
 							<span aria-hidden="true">&laquo;</span>
 						</a>
 					{% else %}
@@ -102,7 +119,7 @@
 				<!-- Première page si nécessaire -->
 				{% if start_page > 1 %}
 					<li class="page-item">
-						<a class="page-link" href="{{ path('pokemon.index', { page: 1 }) }}">1</a>
+						<a class="page-link" href="{{ path('pokemon.index', { page: 1, sort: current_sort }) }}">1</a>
 					</li>
 					{% if start_page > 2 %}
 						<li class="page-item disabled">
@@ -117,7 +134,7 @@
 						{% if page == current_page %}
 							<span class="page-link">{{ page }}</span>
 						{% else %}
-							<a class="page-link" href="{{ path('pokemon.index', { page: page }) }}">{{ page }}</a>
+							<a class="page-link" href="{{ path('pokemon.index', { page: page, sort: current_sort }) }}">{{ page }}</a>
 						{% endif %}
 					</li>
 				{% endfor %}
@@ -130,14 +147,14 @@
 						</li>
 					{% endif %}
 					<li class="page-item">
-						<a class="page-link" href="{{ path('pokemon.index', { page: total_pages }) }}">{{ total_pages }}</a>
+						<a class="page-link" href="{{ path('pokemon.index', { page: total_pages, sort: current_sort }) }}">{{ total_pages }}</a>
 					</li>
 				{% endif %}
 
 				<!-- Bouton Suivant -->
 				<li class="page-item {{ not has_next ? 'disabled' : '' }}">
 					{% if has_next %}
-						<a class="page-link" href="{{ path('pokemon.index', { page: next_page }) }}" aria-label="Page suivante">
+						<a class="page-link" href="{{ path('pokemon.index', { page: next_page, sort: current_sort }) }}" aria-label="Page suivante">
 							<span aria-hidden="true">&raquo;</span>
 						</a>
 					{% else %}
@@ -154,7 +171,7 @@
 	<div class="row mt-4">
 		<div class="col-md-6">
 			{% if has_previous %}
-				<a href="{{ path('pokemon.index', { page: previous_page }) }}" class="btn btn-outline-secondary">
+				<a href="{{ path('pokemon.index', { page: previous_page, sort: current_sort }) }}" class="btn btn-outline-secondary">
 					<i class="fas fa-chevron-left"></i>
 					Page précédente
 				</a>
@@ -162,7 +179,7 @@
 		</div>
 		<div class="col-md-6 text-end">
 			{% if has_next %}
-				<a href="{{ path('pokemon.index', { page: next_page }) }}" class="btn btn-outline-secondary">
+				<a href="{{ path('pokemon.index', { page: next_page, sort: current_sort }) }}" class="btn btn-outline-secondary">
 					Page suivante
 					<i class="fas fa-chevron-right"></i>
 				</a>

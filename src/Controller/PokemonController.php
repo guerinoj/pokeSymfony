@@ -16,10 +16,11 @@ final class PokemonController extends AbstractController
     public function index(Request $request): Response
     {
         $page = max(1, $request->query->getInt('page', 1));
+        $sort = $request->query->get('sort');
         $limit = 20;
         $offset = ($page - 1) * $limit;
 
-        $pokemonData = $this->pokemonService->getAll($limit, $offset);
+        $pokemonData = $this->pokemonService->getAll($limit, $offset, $sort);
 
         // Calculer le nombre total de pages
         $totalPokemon = $pokemonData['count'];
@@ -35,6 +36,7 @@ final class PokemonController extends AbstractController
             'has_next' => $page < $totalPages,
             'previous_page' => $page - 1,
             'next_page' => $page + 1,
+            'current_sort' => $sort,
         ]);
     }
 
